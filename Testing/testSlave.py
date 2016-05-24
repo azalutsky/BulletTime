@@ -14,5 +14,10 @@ def copyDirectory(src, dest):
     except OSError as e:
         print('Directory not copied. Error: %s' % e)
 
+if os.path.exists('Testing/TestImagesTmp'):
+	shutil.rmtree('Testing/TestImagesTmp')
 copyDirectory('Testing/TestImages', 'Testing/TestImagesTmp')
+
 s0 = Slave(name = 'Slave01', folder_loc='Testing/TestImagesTmp/Ingest_02', host='localhost', port=8080, debug=True)
+s0.setParameters(name='Params',destination='Testing/Params')
+s0.run()

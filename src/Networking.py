@@ -5,13 +5,16 @@ import select
 import sys
 from shutil import copyfile
 import re
+import time
+
+MAX_SEND_SIZE = 512
 
 class Client:
     def __init__(self, port=8080, host='localhost', timeout=5, delimeter=':::', debug=False):
         self.port = port
         self.host = host
         self.timeout = timeout
-        self.max_send_size = 512
+        self.max_send_size = MAX_SEND_SIZE
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connected = False
         self.debug = debug
@@ -42,7 +45,11 @@ class Client:
             size = os.path.getsize(tmpfilename)
             print "Filesize: " + str(size)
 
+        
+            time.sleep(0.01)
             self.socket.send(str(size))
+            time.sleep(0.01)
+            
             while size > 0:
                 size_of_send = size - self.max_send_size
                 if size_of_send < 0:
@@ -99,7 +106,7 @@ class Client:
 
     def run(self):
         while 1:
-            data = self.socket.recv(512)
+            data = self.socket.recv(self.max_send_size)
             if data:
                 split_string = data.split(str(self.delimeter))
                 function = split_string[0]
@@ -132,7 +139,7 @@ class Server:
         self.port = port
         self.host = host
         self.timeout = timeout
-        self.RECV_BUFFER = 512
+        self.RECV_BUFFER = MAX_SEND_SIZE
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.address = None
         self.delimeter = delimeter
@@ -155,7 +162,7 @@ class Server:
         self.close()
         
     def recieveText(self):
-        data = self.socket.recv(1024)
+        data = self.socket.recv(self.RECV_BUFFER)
         if self.debug:
             print "The following data was received - ",data
             print "Opening file - ",data
@@ -202,9 +209,13 @@ class Server:
 
         sock.send(cmd)
 
-        fp = open(store_filename,'wb+')
+        fp = open(store_filename,'wb')
 
+        
+        time.sleep(0.01)
         size = int(sock.recv(self.RECV_BUFFER))
+        time.sleep(0.01)
+
         while size > 0:
             size_of_recv = size - self.RECV_BUFFER
             if size_of_recv < 0:
@@ -227,12 +238,11 @@ class Server:
         #    return False
             
     def sendBinaryFile(self, filename):
-        #data = self.connection.recv(1024)
         if self.debug:
             print "Sending file - ",data
         img = open(filename,'rb')
         while True:
-            strng = img.readline(512)
+            strng = img.readline(self.RECV_BUFFER)
             if not strng:
                 break
             self.connection.send(strng)
@@ -335,7 +345,7 @@ class Server:
         file_list = []
         fp = open(file_loc,'rb')
         while True:
-            strng = fp.readline(512)
+            strng = fp.readline(self.RECV_BUFFER)
             if not strng:
                 break
             strng_split = strng.split( str(self.delimeter) )

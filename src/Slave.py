@@ -6,7 +6,7 @@ from FolderParser import Folder, File, FolderParser
 import time
 
 class Slave: 
-    def __init__(self, name, index=1, host='localhost', port=8080, debug=False, folder_loc='', delimeter=':::', cameras=12, acceptable_filetype_set=['.JPG','CR2']):
+    def __init__(self, name, index=1, host='localhost', port=8080, debug=False, param_file=None, folder_loc='', delimeter=':::', cameras=12, acceptable_filetype_set=['.JPG','CR2'], destination=None):
         self.name = name
         self.debug = debug
         self.index = index
@@ -14,34 +14,41 @@ class Slave:
         self.host = host
         self.delimeter = delimeter
         self.client = Client(host=host, port=port, debug=debug, delimeter=self.delimeter)
-        self.param_file = Parameters(name=name, debug=debug)
-        self.folder_loc = folder_loc
-        self.folder = Folder(self.folder_loc)
+        self.param_file = param_file
+        if self.param_file:
+            self.writeParamHeaders()
+            self.writeParamFilenames()
+            self.closeParam()
+
 
         #functions that revolve around other instances
         self.cameras=cameras
         self.acceptable_filetype_set=acceptable_filetype_set
 
+        self.folder_loc = folder_loc
+        self.folder = Folder(self.folder_loc)
+        self.checkFolders()
+
         self.client.connect()
-        self.writeParamHeaders()
-        self.writeParamFilenames()
-        self.closeParam()
-        self.run()
 
     def __del__(self): 
         if self.client:
             self.client.close()
-
-    '''Client Helper Functions'''
         
     '''Param File Helper Functions'''
+    def setParameters(self, name, destination):
+        self.param_file = Parameters(name=self.name,destination=destination)
+        self.writeParamHeaders()
+        self.writeParamFilenames()
+        self.closeParam()
+
     def writeParamHeaders(self):
         #if self.debug: 
         #    print "writeHeaders" 
         self.param_file.write("Name" + str(self.delimeter) + str(self.name) + "\n")
         self.param_file.write("Port" + str(self.delimeter) + str(self.port) + "\n")
         self.param_file.write("Host" + str(self.delimeter) + str(self.host) + "\n")
-        self.param_file.write("Parameter File Location" + str(self.delimeter) + str(abspath(join(self.param_file.getPrefix(), self.name + self.param_file.getFileType()))) + "\n")
+        self.param_file.write("Parameter File Location" + str(self.delimeter) + str(abspath(join(self.param_file.getDestination(), self.name + self.param_file.getFileType()))) + "\n")
     
     def writeParamFilenames(self): 
         #if self.debug:
@@ -113,13 +120,11 @@ class Slave:
             if len(files) == 0 and len(dirs) == 0:
                 rmdir(path)
         return ok
-                
-    def run(self):
+
+    def checkFolders(self):
         folders = self.getFilenamesFolders(self.folder)
         for folder in folders:
             bad_data = self.checkData(folder)
-        if bad_data == []:
-            print "Corrupt data: " + str(bad_data)
         while bad_data != []:
             if (len(bad_data)%2 == 0):
                 print "Data problem in two folders..."
@@ -132,10 +137,11 @@ class Slave:
                     print "Files moved, problem resolved between: " 
                     print data_set_1[1] 
                     print data_set_2[1]
-
-
             else: 
                 print "Corrupt folders are not aligned... Please manually inspect them."
+        self.folder = Folder(self.folder_loc)
+                
+    def run(self):
 
         self.client.sendParamFile(self.param_file.param_path)
         self.client.run()
