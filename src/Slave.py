@@ -4,6 +4,7 @@ from Networking import Client
 from Parameters import Parameters
 from FolderParser import Folder, File, FolderParser
 import time
+import shutil, os
 
 class Slave: 
     def __init__(self, name, index=1, host='localhost', port=8080, debug=False, param_file=None, folder_loc='', delimeter=':::', cameras=12, acceptable_filetype_set=['.JPG','CR2'], destination=None):
@@ -35,6 +36,9 @@ class Slave:
         if self.client:
             self.client.close()
         
+        if os.path.exists(self.folder_loc):
+            shutil.rmtree(self.folder_loc)
+
     '''Param File Helper Functions'''
     def setParameters(self, name, destination):
         self.param_file = Parameters(name=self.name,destination=destination)
@@ -139,11 +143,12 @@ class Slave:
                     print data_set_2[1]
             else: 
                 print "Corrupt folders are not aligned... Please manually inspect them."
+                continue
         self.folder = Folder(self.folder_loc)
                 
     def run(self):
-
         self.client.sendParamFile(self.param_file.param_path)
         self.client.run()
+
+    def close(self):
         self.client.close()
-        

@@ -18,6 +18,6 @@ if os.path.exists('Testing/TestImagesTmp'):
 	shutil.rmtree('Testing/TestImagesTmp')
 copyDirectory('Testing/TestImages', 'Testing/TestImagesTmp')
 
-s0 = Slave(name = 'Slave01', folder_loc='Testing/TestImagesTmp/Ingest_02', host='localhost', port=8080, debug=True)
+s0 = Slave(name = 'Slave01', folder_loc='Testing/TestImagesTmp/Ingest_01', host='localhost', port=8080, debug=True)
 s0.setParameters(name='Params',destination='Testing/Params')
 s0.run()
